@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:3.8
+    container_name: zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
+    networks:
+      - kafka-network
+
+  kafka:
+    image: bitnami/kafka:3.5
+    container_name: kafka
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://10.20.11.174:9092
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    networks:
+      - kafka-network
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=10.20.11.174:9092
+    depends_on:
+      - kafka
+    ports:
+      - "8085:8080"
+    networks:
+      - kafka-network
+
+  couchbase:
+    image: couchbase/server:7.1.1
+    container_name: couchbase2
+    ports:
+      - "8091:8091" # Web UI
+      - "8092:8092" # Query service
+      - "8093:8093" # Query service
+      - "8094:8094" # Search service
+      - "11210:11210" # Data Service
+    environment:
+      - COUCHBASE_ADMINISTRATOR_USERNAME=Administrator
+      - COUCHBASE_ADMINISTRATOR_PASSWORD=password
+    networks:
+      - kafka-network
+
+networks:
+  kafka-network:
+    driver: bridge
+
+  # kafdrop:
+  #   image: obsidiandynamics/kafdrop
+  #   container_name: kafdrop
+  #   environment:
+  #     - KAFKA_BROKERCONNECT=kafka:9092
+  #     - JVM_OPTS=-Xms32M -Xmx64M
+  #     - SERVER_PORT=9000
+  #   ports:
+  #     - "9000:9000"
+  #   depends_on:
+  #     - kafka
